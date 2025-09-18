@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analisador de Cor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background-color: #9b9494;
+            margin: 0;
+        }
+        #controls {
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+        }
+        #image-container {
+            position: relative;
+            max-width: 200px;
+            height: auto;
+            border: 2px solid #ccc;
+            background-color: #fff;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        #uploaded-image {
+            max-width: 100%;
+            height: auto;
+            display: none;
+        }
+        #color-picker {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+            cursor: grab;
+            display: none;
+        }
+        #results {
+            margin-top: 20px;
+            text-align: center;
+        }
+        #color-box {
+            width: 80px;
+            height: 80px;
+            border: 1px solid #333;
+            margin: 10px auto;
+        }
+        .color-value {
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+        #file-input {
+            display: none;
+        }
+        #file-input-label, #camera-button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s;
+            border: none;
+        }
+        #file-input-label:hover, #camera-button:hover {
+            background-color: #0056b3;
+        }
+        #camera-video {
+            display: none;
+            max-width: 100%;
+            height: auto;
+        }
+        @media (max-width: 600px) {
+            #controls {
+                flex-direction: row;
+                gap: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Analisador de Cores</h1>
+    
+    <div id="controls">
+        <label id="file-input-label" for="file-input">Carregar Imagem</label>
+        <input type="file" id="file-input" accept="image/*">
+        <button id="camera-button">Tirar Foto</button>
+    </div>
+
+    <div id="image-container">
+        <img id="uploaded-image" alt="Imagem carregada">
+        <video id="camera-video" autoplay playsinline></video>
+        <div id="color-picker"></div>
+    </div>
+
+    <div id="results">
+        <h2>Cor da Área Selecionada:</h2>
+        <div id="color-box"></div>
+        <div class="color-value" id="rgb-value">RGB: (---, ---, ---)</div>
+        <div id="r-value">Vermelho (R): ---</div>
+        <div id="g-value">Verde (G): ---</div>
+        <div id="b-value">Azul (B): ---</div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('file-input');
+        const cameraButton = document.getElementById('camera-button');
+        const uploadedImage = document.getElementById('uploaded-image');
+        const cameraVideo = document.getElementById('camera-video');
+        const colorPicker = document.getElementById('color-picker');
+        const imageContainer = document.getElementById('image-container');
+        const colorBox = document.getElementById('color-box');
+        const rgbValue = document.getElementById('rgb-value');
+        const rValue = document.getElementById('r-value');
+        const gValue = document.getElementById('g-value');
+        const bValue = document.getElementById('b-value');
+
+        let isDragging = false;
+        let activeElement = null; // 'image' or 'video'
+
+        // Função para obter a cor do pixel
+        function getPixelColor(x, y) {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            let source = null;
+
+            if (activeElement === 'image' && uploadedImage.src) {
+                source = uploadedImage;
+                canvas.width = source.naturalWidth;
+                canvas.height = source.naturalHeight;
+            } else if (activeElement === 'video' && cameraVideo.srcObject) {
+                source = cameraVideo;
+                canvas.width = source.videoWidth;
+                canvas.height = source.videoHeight;
+            } else {
+                return null;
+            }
+
+            context.drawImage(source, 0, 0, canvas.width, canvas.height);
+            const scaleX = source.naturalWidth ? source.naturalWidth / imageContainer.clientWidth : source.videoWidth / imageContainer.clientWidth;
+            const scaleY = source.naturalHeight ? source.naturalHeight / imageContainer.clientHeight : source.videoHeight / imageContainer.clientHeight;
+            
+            const pixelX = Math.floor(x * scaleX);
+            const pixelY = Math.floor(y * scaleY);
+            
+            try {
+                const pixelData = context.getImageData(pixelX, pixelY, 1, 1).data;
+                const [r, g, b] = pixelData;
+                return { r, g, b };
+            } catch (error) {
+                console.error("Erro ao obter dados do pixel. Certifique-se de que a imagem está na mesma origem (Same-Origin Policy).", error);
+                return null;
+            }
+        }
+
+        // Função para atualizar o seletor de cor e os resultados
+        function updateColor(x, y) {
+            const color = getPixelColor(x, y);
+            if (color) {
+                colorBox.style.backgroundColor = `rgb(${color.r}, ${color.g}, ${color.b})`;
+                rgbValue.textContent = `RGB: (${color.r}, ${color.g}, ${color.b})`;
+                rValue.textContent = `Vermelho (R): ${color.r}`;
+                gValue.textContent = `Verde (G): ${color.g}`;
+                bValue.textContent = `Azul (B): ${color.b}`;
+            }
+        }
+
+        // Eventos de arrastar do seletor de cor
+        colorPicker.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            colorPicker.style.cursor = 'grabbing';
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+            colorPicker.style.cursor = 'grab';
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                const rect = imageContainer.getBoundingClientRect();
+                let x = e.clientX - rect.left;
+                let y = e.clientY - rect.top;
+
+                // Limita o movimento dentro da imagem
+                x = Math.max(15, Math.min(rect.width - 15, x));
+                y = Math.max(15, Math.min(rect.height - 15, y));
+
+                colorPicker.style.left = `${x - 15}px`;
+                colorPicker.style.top = `${y - 15}px`;
+                updateColor(x, y);
+            }
+        });
+
+        // Evento de toque para dispositivos móveis
+        colorPicker.addEventListener('touchstart', (e) => {
+            isDragging = true;
+            e.preventDefault();
+        });
+        
+        document.addEventListener('touchend', () => {
+            isDragging = false;
+        });
+
+        document.addEventListener('touchmove', (e) => {
+            if (isDragging && e.touches.length > 0) {
+                const touch = e.touches[0];
+                const rect = imageContainer.getBoundingClientRect();
+                let x = touch.clientX - rect.left;
+                let y = touch.clientY - rect.top;
+                
+                x = Math.max(15, Math.min(rect.width - 15, x));
+                y = Math.max(15, Math.min(rect.height - 15, y));
+
+                colorPicker.style.left = `${x - 15}px`;
+                colorPicker.style.top = `${y - 15}px`;
+                updateColor(x, y);
+            }
+        });
+
+        // Evento para carregar imagem
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    uploadedImage.src = e.target.result;
+                    uploadedImage.style.display = 'block';
+                    colorPicker.style.display = 'block';
+                    cameraVideo.style.display = 'none';
+                    if (cameraVideo.srcObject) {
+                        const tracks = cameraVideo.srcObject.getTracks();
+                        tracks.forEach(track => track.stop());
+                        cameraVideo.srcObject = null;
+                    }
+                    activeElement = 'image';
+                    setTimeout(() => {
+                        const rect = imageContainer.getBoundingClientRect();
+                        colorPicker.style.left = `${rect.width / 2 - 15}px`;
+                        colorPicker.style.top = `${rect.height / 2 - 15}px`;
+                        updateColor(rect.width / 2, rect.height / 2);
+                    }, 50);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Evento para tirar foto
+        cameraButton.addEventListener('click', async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                cameraVideo.srcObject = stream;
+                cameraVideo.style.display = 'block';
+                uploadedImage.style.display = 'none';
+                colorPicker.style.display = 'block';
+                activeElement = 'video';
+                
+                // Espera o vídeo carregar para centralizar o seletor
+                cameraVideo.onloadedmetadata = () => {
+                    const rect = imageContainer.getBoundingClientRect();
+                    colorPicker.style.left = `${rect.width / 2 - 15}px`;
+                    colorPicker.style.top = `${rect.height / 2 - 15}px`;
+                    updateColor(rect.width / 2, rect.height / 2);
+                };
+                
+            } catch (err) {
+                console.error("Erro ao acessar a câmera: ", err);
+                alert("Não foi possível acessar a câmera. Verifique as permissões.");
+            }
+        });
+        
+    </script>
+</body>
+</html>
