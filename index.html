@@ -3,287 +3,494 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analisador de Cor</title>
+    <title>Analisador de Cores CIELAB</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            background-color: #9b9494;
-            margin: 0;
+            margin: 20px;
+            text-align: center;
+            background-color: #f4f4f9;
         }
-        #controls {
-            margin-bottom: 20px;
+        h1 {
+            color: #333;
+        }
+        #container {
+            margin-top: 20px;
             display: flex;
             flex-direction: column;
-            gap: 10px;
             align-items: center;
         }
         #image-container {
             position: relative;
-            max-width: 200px;
-            height: 300px;
+            max-width: 800px;
             border: 2px solid #ccc;
             background-color: #fff;
-            overflow: hidden;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            padding: 10px;
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
-        #uploaded-image {
+        #image-preview {
             max-width: 100%;
             height: auto;
+            display: block;
+        }
+        #canvas {
+            display: none; /* O canvas fica escondido, só usamos para ler os pixels */
+        }
+        #color-info {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #e9e9e9;
+            width: 400px;
+            text-align: left;
+        }
+        .color-box {
+            display: inline-block;
+            width: 50px;
+            height: 20px;
+            border: 1px solid #000;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+        .info-line {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        .hidden {
             display: none;
         }
-        #color-picker {
+        #click-marker {
             position: absolute;
-            width: 30px;
-            height: 30px;
+            width: 14px;
+            height: 14px;
             border-radius: 50%;
             border: 2px solid white;
-            box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
-            cursor: grab;
-            display: none;
+            box-shadow: 0 0 0 2px black; /* Cria um contorno preto para visibilidade */
+            transform: translate(-50%, -50%); /* Centraliza o marcador no ponto do clique */
+            pointer-events: none; /* Impede que o marcador intercepte cliques */
         }
-        #results {
-            margin-top: 20px;
-            text-align: center;
+        .button-group {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 15px;
         }
-        #color-box {
-            width: 80px;
-            height: 80px;
-            border: 1px solid #333;
-            margin: 10px auto;
-        }
-        .color-value {
-            font-size: 1.2em;
-            font-weight: bold;
-        }
-        #file-input {
-            display: none;
-        }
-        #file-input-label, #camera-button {
-            background-color: #007bff;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 5px;
+        #save-color-btn {
+            padding: 8px 15px;
             cursor: pointer;
-            font-size: 1em;
-            transition: background-color 0.3s;
+            background-color: #4CAF50;
+            color: white;
             border: none;
+            border-radius: 4px;
         }
-        #file-input-label:hover, #camera-button:hover {
-            background-color: #0056b3;
+        #set-standard-btn {
+            padding: 8px 15px;
+            cursor: pointer;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 4px;
         }
-        #camera-video {
-            display: none;
-            max-width: 100%;
-            height: auto;
+        #saved-colors-container {
+            margin-top: 30px;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
         }
-        @media (max-width: 600px) {
-            #controls {
-                flex-direction: row;
-                gap: 5px;
+        #saved-colors-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            background-color: #fff;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        #saved-colors-table th, #saved-colors-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+            vertical-align: middle;
+        }
+        #saved-colors-table th {
+            background-color: #f2f2f2;
+            color: #333;
+        }
+        .action-btn {
+            cursor: pointer;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            margin: 0 2px;
+        }
+        .edit-btn { background-color: #ffc107; }
+        .delete-btn { background-color: #f44336; }
+        #standard-value-container {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #e9e9e9;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        #standard-value-input {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 250px;
+        }
+
+        /* Estilos para telas menores (Smartphones) */
+        @media (max-width: 768px) {
+            body {
+                margin: 10px;
+            }
+
+            h1 {
+                font-size: 1.5em;
+            }
+
+            p {
+                padding: 0 10px;
+            }
+
+            #color-info, #standard-value-container {
+                width: 90%;
+            }
+
+            #standard-value-container {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            #standard-value-input {
+                width: 90%;
+            }
+
+            #saved-colors-container {
+                width: 100%;
+                overflow-x: auto; /* Permite rolagem horizontal da tabela */
+                -webkit-overflow-scrolling: touch; /* Melhora a rolagem em iOS */
+            }
+
+            .action-btn {
+                padding: 8px; /* Aumenta a área de toque dos botões */
             }
         }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/d3-color@3"></script>
 </head>
 <body>
 
-    <h1>Analisador de Cores</h1>
+    <h1>Analisador de Cores CIELAB</h1>
+    <p>Clique em qualquer parte da imagem para obter os valores de cor CIELAB ($L^*a^*b^*$) e RGB.</p>
     
-    <div id="controls">
-        <label id="file-input-label" for="file-input">Carregar Imagem</label>
-        <input type="file" id="file-input" accept="image/*">
-        <button id="camera-button">Tirar Foto</button>
+    <label for="image-upload">Selecione uma imagem:</label>
+    <input type="file" id="image-upload" accept="image/*" style="margin-top: 10px;">
+
+    <div id="container">
+        <div id="image-container">
+            <img id="image-preview" src="#" alt="Pré-visualização da Imagem" class="hidden">
+            <canvas id="canvas"></canvas>
+            <div id="click-marker" class="hidden"></div>
+        </div>
+        
+        <div id="color-info" class="hidden">
+            <h3>Detalhes da Cor</h3>
+            <div class="info-line">
+                <strong>RGB:</strong> <span id="rgb-value"></span>
+                <span id="rgb-box" class="color-box"></span>
+            </div>
+            <div class="info-line">
+                <strong>CIELAB:</strong> <span id="lab-value"></span>
+            </div>
+            <div class="button-group hidden">
+                <button id="save-color-btn">Salvar Cor</button>
+                <button id="set-standard-btn">Definir como Padrão</button>
+            </div>
+        </div>
     </div>
 
-    <div id="image-container">
-        <img id="uploaded-image" alt="Imagem carregada">
-        <video id="camera-video" autoplay playsinline></video>
-        <div id="color-picker"></div>
+    <div id="standard-value-container">
+        <label for="standard-value-input">Valor Padrão CIELAB:</label>
+        <input type="text" id="standard-value-input" placeholder="Ex: L*: 50, a*: 0, b*: 0">
     </div>
 
-    <div id="results">
-        <h2>Cor da Área Selecionada:</h2>
-        <div id="color-box"></div>
-        <div class="color-value" id="rgb-value">RGB: (---, ---, ---)</div>
-        <div id="r-value">Vermelho (R): ---</div>
-        <div id="g-value">Verde (G): ---</div>
-        <div id="b-value">Azul (B): ---</div>
+    <div id="saved-colors-container" class="hidden">
+        <h2>Cores Salvas</h2>
+        <table id="saved-colors-table">
+            <thead>
+                <tr>
+                    <th>Descrição</th>
+                    <th>RGB</th>
+                    <th>CIELAB</th>
+                    <th>Análise vs. Padrão</th>
+                    <th>Cor</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody id="saved-colors-tbody">
+            </tbody>
+        </table>
     </div>
 
     <script>
-        const fileInput = document.getElementById('file-input');
-        const cameraButton = document.getElementById('camera-button');
-        const uploadedImage = document.getElementById('uploaded-image');
-        const cameraVideo = document.getElementById('camera-video');
-        const colorPicker = document.getElementById('color-picker');
+        document.addEventListener('DOMContentLoaded', () => {
+
+        const imageUpload = document.getElementById('image-upload');
+        const imagePreview = document.getElementById('image-preview');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        const colorInfo = document.getElementById('color-info');
+        const rgbValueSpan = document.getElementById('rgb-value');
+        const labValueSpan = document.getElementById('lab-value');
+        const rgbBoxSpan = document.getElementById('rgb-box');
         const imageContainer = document.getElementById('image-container');
-        const colorBox = document.getElementById('color-box');
-        const rgbValue = document.getElementById('rgb-value');
-        const rValue = document.getElementById('r-value');
-        const gValue = document.getElementById('g-value');
-        const bValue = document.getElementById('b-value');
+        const saveColorBtn = document.getElementById('save-color-btn');
+        const setStandardBtn = document.getElementById('set-standard-btn');
+        const buttonGroup = document.querySelector('.button-group');
+        const clickMarker = document.getElementById('click-marker');
+        const savedColorsContainer = document.getElementById('saved-colors-container');
+        const savedColorsTbody = document.getElementById('saved-colors-tbody');
+        const standardValueInput = document.getElementById('standard-value-input');
 
-        let isDragging = false;
-        let activeElement = null; // 'image' or 'video'
-
-        // Função para obter a cor do pixel
-        function getPixelColor(x, y) {
-            const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d');
-            let source = null;
-
-            if (activeElement === 'image' && uploadedImage.src) {
-                source = uploadedImage;
-                canvas.width = source.naturalWidth;
-                canvas.height = source.naturalHeight;
-            } else if (activeElement === 'video' && cameraVideo.srcObject) {
-                source = cameraVideo;
-                canvas.width = source.videoWidth;
-                canvas.height = source.videoHeight;
-            } else {
-                return null;
-            }
-
-            context.drawImage(source, 0, 0, canvas.width, canvas.height);
-            const scaleX = source.naturalWidth ? source.naturalWidth / imageContainer.clientWidth : source.videoWidth / imageContainer.clientWidth;
-            const scaleY = source.naturalHeight ? source.naturalHeight / imageContainer.clientHeight : source.videoHeight / imageContainer.clientHeight;
-            
-            const pixelX = Math.floor(x * scaleX);
-            const pixelY = Math.floor(y * scaleY);
-            
-            try {
-                const pixelData = context.getImageData(pixelX, pixelY, 1, 1).data;
-                const [r, g, b] = pixelData;
-                return { r, g, b };
-            } catch (error) {
-                console.error("Erro ao obter dados do pixel. Certifique-se de que a imagem está na mesma origem (Same-Origin Policy).", error);
-                return null;
-            }
-        }
-
-        // Função para atualizar o seletor de cor e os resultados
-        function updateColor(x, y) {
-            const color = getPixelColor(x, y);
-            if (color) {
-                colorBox.style.backgroundColor = `rgb(${color.r}, ${color.g}, ${color.b})`;
-                rgbValue.textContent = `RGB: (${color.r}, ${color.g}, ${color.b})`;
-                rValue.textContent = `Vermelho (R): ${color.r}`;
-                gValue.textContent = `Verde (G): ${color.g}`;
-                bValue.textContent = `Azul (B): ${color.b}`;
-            }
-        }
-
-        // Eventos de arrastar do seletor de cor
-        colorPicker.addEventListener('mousedown', (e) => {
-            isDragging = true;
-            colorPicker.style.cursor = 'grabbing';
-        });
-
-        document.addEventListener('mouseup', () => {
-            isDragging = false;
-            colorPicker.style.cursor = 'grab';
-        });
-
-        document.addEventListener('mousemove', (e) => {
-            if (isDragging) {
-                const rect = imageContainer.getBoundingClientRect();
-                let x = e.clientX - rect.left;
-                let y = e.clientY - rect.top;
-
-                // Limita o movimento dentro da imagem
-                x = Math.max(15, Math.min(rect.width - 15, x));
-                y = Math.max(15, Math.min(rect.height - 15, y));
-
-                colorPicker.style.left = `${x - 15}px`;
-                colorPicker.style.top = `${y - 15}px`;
-                updateColor(x, y);
-            }
-        });
-
-        // Evento de toque para dispositivos móveis
-        colorPicker.addEventListener('touchstart', (e) => {
-            isDragging = true;
-            e.preventDefault();
-        });
+        let savedColors = [];
+        let currentColor = null; // Armazena a última cor selecionada
         
-        document.addEventListener('touchend', () => {
-            isDragging = false;
-        });
-
-        document.addEventListener('touchmove', (e) => {
-            if (isDragging && e.touches.length > 0) {
-                const touch = e.touches[0];
-                const rect = imageContainer.getBoundingClientRect();
-                let x = touch.clientX - rect.left;
-                let y = touch.clientY - rect.top;
-                
-                x = Math.max(15, Math.min(rect.width - 15, x));
-                y = Math.max(15, Math.min(rect.height - 15, y));
-
-                colorPicker.style.left = `${x - 15}px`;
-                colorPicker.style.top = `${y - 15}px`;
-                updateColor(x, y);
-            }
-        });
-
-        // Evento para carregar imagem
-        fileInput.addEventListener('change', (e) => {
+        // Função para carregar a imagem selecionada pelo usuário
+        imageUpload.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
                 const reader = new FileReader();
-                reader.onload = function(e) {
-                    uploadedImage.src = e.target.result;
-                    uploadedImage.style.display = 'block';
-                    colorPicker.style.display = 'block';
-                    cameraVideo.style.display = 'none';
-                    if (cameraVideo.srcObject) {
-                        const tracks = cameraVideo.srcObject.getTracks();
-                        tracks.forEach(track => track.stop());
-                        cameraVideo.srcObject = null;
-                    }
-                    activeElement = 'image';
-                    setTimeout(() => {
-                        const rect = imageContainer.getBoundingClientRect();
-                        colorPicker.style.left = `${rect.width / 2 - 15}px`;
-                        colorPicker.style.top = `${rect.height / 2 - 15}px`;
-                        updateColor(rect.width / 2, rect.height / 2);
-                    }, 50);
+                reader.onload = function(event) {
+                    imagePreview.src = event.target.result;
+                    imagePreview.classList.remove('hidden');
+                    buttonGroup.classList.add('hidden');
+                    colorInfo.classList.add('hidden'); // Esconde a info até clicar em uma cor
+                    clickMarker.classList.add('hidden'); // Esconde o marcador ao carregar nova imagem
                 };
                 reader.readAsDataURL(file);
             }
         });
 
-        // Evento para tirar foto
-        cameraButton.addEventListener('click', async () => {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-                cameraVideo.srcObject = stream;
-                cameraVideo.style.display = 'block';
-                uploadedImage.style.display = 'none';
-                colorPicker.style.display = 'block';
-                activeElement = 'video';
-                
-                // Espera o vídeo carregar para centralizar o seletor
-                cameraVideo.onloadedmetadata = () => {
-                    const rect = imageContainer.getBoundingClientRect();
-                    colorPicker.style.left = `${rect.width / 2 - 15}px`;
-                    colorPicker.style.top = `${rect.height / 2 - 15}px`;
-                    updateColor(rect.width / 2, rect.height / 2);
+        // Quando a imagem for carregada, desenha ela no canvas
+        imagePreview.addEventListener('load', function() {
+            canvas.width = this.naturalWidth;
+            canvas.height = this.naturalHeight;
+            ctx.drawImage(this, 0, 0);
+            
+            // Redimensiona o container para ficar com a imagem
+            imageContainer.style.width = this.offsetWidth + 'px';
+            imageContainer.style.height = this.offsetHeight + 'px';
+        });
+
+        // Adiciona um evento de clique na imagem para pegar a cor do pixel
+        imagePreview.addEventListener('click', function(e) {
+            const rect = this.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            // Mostra e posiciona o marcador de clique
+            clickMarker.style.left = `${x}px`;
+            clickMarker.style.top = `${y}px`;
+            clickMarker.classList.remove('hidden');
+
+            // Escala as coordenadas do clique para o tamanho original da imagem no canvas
+            const scaleX = canvas.width / this.offsetWidth;
+            const scaleY = canvas.height / this.offsetHeight;
+            const canvasX = Math.floor(x * scaleX);
+            const canvasY = Math.floor(y * scaleY);
+            
+            // Obtém os dados do pixel no ponto clicado
+            const imageData = ctx.getImageData(canvasX, canvasY, 1, 1).data;
+            const r = imageData[0];
+            const g = imageData[1];
+            const b = imageData[2];
+
+            // Converte a cor de RGB para CIELAB usando a biblioteca d3-color
+            const labColor = d3.lab(r, g, b);
+            const l = labColor.l.toFixed(2);
+            const a = labColor.a.toFixed(2);
+            const b_lab = labColor.b.toFixed(2);
+            
+            // Armazena os dados da cor atual para poder salvar
+            currentColor = {
+                rgb: `(${r}, ${g}, ${b})`,
+                lab: { l: parseFloat(l), a: parseFloat(a), b: parseFloat(b_lab) }
+            };
+
+            // Atualiza o HTML com os valores
+            rgbValueSpan.textContent = `(${r}, ${g}, ${b})`;
+            labValueSpan.textContent = `L*: ${l}, a*: ${a}, b*: ${b_lab}`;
+            rgbBoxSpan.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+            
+            // Mostra o bloco de informações
+            colorInfo.classList.remove('hidden');
+            buttonGroup.classList.remove('hidden');
+        });
+
+        // Função para extrair os valores L, a, b de uma string
+        function parseLabString(labString) {
+            if (!labString) return null;
+            const regex = /L\*:\s*(-?\d+\.?\d*),\s*a\*:\s*(-?\d+\.?\d*),\s*b\*:\s*(-?\d+\.?\d*)/;
+            const match = labString.match(regex);
+            if (match && match.length === 4) {
+                return {
+                    l: parseFloat(match[1]),
+                    a: parseFloat(match[2]),
+                    b: parseFloat(match[3])
                 };
-                
-            } catch (err) {
-                console.error("Erro ao acessar a câmera: ", err);
-                alert("Não foi possível acessar a câmera. Verifique as permissões.");
+            }
+            return null;
+        }
+
+        // Evento para definir a cor atual como padrão
+        setStandardBtn.addEventListener('click', () => {
+            if (!currentColor) return;
+
+            const { l, a, b } = currentColor.lab;
+            const standardValueStr = `L*: ${l.toFixed(2)}, a*: ${a.toFixed(2)}, b*: ${b.toFixed(2)}`;
+
+            standardValueInput.value = standardValueStr;
+            localStorage.setItem('cielabStandardValue', standardValueStr);
+            
+            alert('Valor padrão definido a partir da cor selecionada!');
+            renderSavedColors(); // Re-renderiza a tabela para atualizar a análise
+        });
+
+        // Evento para salvar a cor atual
+        saveColorBtn.addEventListener('click', () => {
+            if (!currentColor) return;
+
+            const description = prompt("Digite uma descrição para esta cor:", "Minha Cor");
+            if (description) {
+                const newColor = {
+                    id: Date.now(),
+                    desc: description,
+                    ...currentColor
+                };
+                savedColors.push(newColor);
+                updateStorageAndRender();
             }
         });
-        
+
+        // Eventos na tabela para editar e excluir (usando delegação de eventos)
+        savedColorsTbody.addEventListener('click', (e) => {
+            const target = e.target;
+            const row = target.closest('tr');
+            if (!row) return;
+
+            const id = Number(row.dataset.id);
+
+            if (target.classList.contains('delete-btn')) {
+                if (confirm('Tem certeza que deseja excluir esta cor?')) {
+                    savedColors = savedColors.filter(color => color.id !== id);
+                    updateStorageAndRender();
+                }
+            }
+
+            if (target.classList.contains('edit-btn')) {
+                const colorToEdit = savedColors.find(color => color.id === id);
+                if (colorToEdit) {
+                    const newDescription = prompt("Edite a descrição:", colorToEdit.desc);
+                    if (newDescription && newDescription.trim() !== '') {
+                        colorToEdit.desc = newDescription.trim();
+                        updateStorageAndRender();
+                    }
+                }
+            }
+        });
+
+        function updateStorageAndRender() {
+            localStorage.setItem('savedCielabColors', JSON.stringify(savedColors));
+            renderSavedColors();
+        }
+
+        function renderSavedColors() {
+            savedColorsTbody.innerHTML = '';
+            if (savedColors.length === 0) {
+                savedColorsContainer.classList.add('hidden');
+                return;
+            }
+            savedColorsContainer.classList.remove('hidden');
+
+            const standardValueStr = standardValueInput.value.trim();
+            const standardLab = parseLabString(standardValueStr);
+
+            savedColors.forEach(color => {
+                const row = document.createElement('tr');
+                row.dataset.id = color.id;
+
+                let analysisText = '-';
+                if (standardLab && color.lab) {
+                    const savedL = color.lab.l;
+                    const standardL = standardLab.l;
+                    if (savedL > standardL) {
+                        analysisText = 'Mais Clara';
+                    } else if (savedL < standardL) {
+                        analysisText = 'Mais Escura';
+                    } else {
+                        analysisText = 'Mesma Luminosidade';
+                    }
+                }
+
+                const labDisplayString = `L*: ${color.lab.l.toFixed(2)}, a*: ${color.lab.a.toFixed(2)}, b*: ${color.lab.b.toFixed(2)}`;
+
+                row.innerHTML = `
+                    <td>${color.desc}</td>
+                    <td>${color.rgb}</td>
+                    <td>${labDisplayString}</td>
+                    <td>${analysisText}</td>
+                    <td><span class="color-box" style="background-color: rgb${color.rgb};"></span></td>
+                    <td>
+                        <button class="action-btn edit-btn">Alterar</button>
+                        <button class="action-btn delete-btn">Excluir</button>
+                    </td>
+                `;
+                savedColorsTbody.appendChild(row);
+            });
+        }
+
+        // Carrega os dados do localStorage ao iniciar a página
+        function loadInitialData() {
+            const storedColors = localStorage.getItem('savedCielabColors');
+            if (storedColors) {
+                let parsedColors = JSON.parse(storedColors);
+                // Garante compatibilidade com dados antigos que salvavam 'lab' como string
+                savedColors = parsedColors.map(color => {
+                    if (typeof color.lab === 'string') {
+                        const parsedLab = parseLabString(color.lab);
+                        if (parsedLab) {
+                            return { ...color, lab: parsedLab };
+                        }
+                    }
+                    return color;
+                }).filter(color => color.lab && typeof color.lab === 'object');
+
+                renderSavedColors();
+            }
+        }
+
+        // Carrega o valor padrão do localStorage
+        function loadStandardValue() {
+            const storedValue = localStorage.getItem('cielabStandardValue');
+            if (storedValue) {
+                standardValueInput.value = storedValue;
+            }
+        }
+
+        loadInitialData();
+        loadStandardValue();
+        });
     </script>
 </body>
 </html>
