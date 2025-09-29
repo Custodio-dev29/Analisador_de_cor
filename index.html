@@ -1,498 +1,146 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
+<!doctype html>
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analisador de Cores CIELAB</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            text-align: center;
-            background-color: #f4f4f9;
-        }
-        h1 {
-            color: #333;
-        }
-        #container {
-            margin-top: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        #image-container {
-            position: relative;
-            max-width: 400px;
-            border: 2px solid #ccc;
-            background-color: #fff;
-            padding: 10px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            
-        }
-        #image-preview {
-            max-width: 100%;
-            height: 100%;
-            display: flex;
-            
-        }
-        #canvas {
-            display: none; /* O canvas fica escondido, só usamos para ler os pixels */
-        }
-        #color-info {
-            margin-top: 20px;
-            padding: 15px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            background-color: #e9e9e9;
-            width: 400px;
-            text-align: left;
-        }
-        .color-box {
-            display: inline-block;
-            width: 50px;
-            height: 20px;
-            border: 1px solid #000;
-            margin-left: 10px;
-            vertical-align: middle;
-        }
-        .info-line {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 5px;
-        }
-        .hidden {
-            display: none;
-        }
-        #click-marker {
-            position: absolute;
-            width: 14px;
-            height: 14px;
-            border-radius: 50%;
-            border: 2px solid white;
-            box-shadow: 0 0 0 2px black; /* Cria um contorno preto para visibilidade */
-            transform: translate(-50%, -50%); /* Centraliza o marcador no ponto do clique */
-            pointer-events: none; /* Impede que o marcador intercepte cliques */
-        }
-        .button-group {
-            display: flex;
-            justify-content: space-around;
-            margin-top: 15px;
-        }
-        #save-color-btn {
-            padding: 8px 15px;
-            cursor: pointer;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 4px;
-        }
-        #set-standard-btn {
-            padding: 8px 15px;
-            cursor: pointer;
-            background-color: #007BFF;
-            color: white;
-            border: none;
-            border-radius: 4px;
-        }
-        #saved-colors-container {
-            margin-top: 30px;
-            width: 100%;
-            max-width: 800px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-        #saved-colors-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-            background-color: #fff;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-        #saved-colors-table th, #saved-colors-table td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: center;
-            vertical-align: middle;
-        }
-        #saved-colors-table th {
-            background-color: #f2f2f2;
-            color: #333;
-        }
-        .action-btn {
-            cursor: pointer;
-            padding: 5px 10px;
-            border: none;
-            border-radius: 4px;
-            color: white;
-            margin: 0 2px;
-        }
-        .edit-btn { background-color: #ffc107; }
-        .delete-btn { background-color: #f44336; }
-        #standard-value-container {
-            margin-top: 30px;
-            padding: 15px;
-            background-color: #e9e9e9;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            max-width: 800px;
-            margin-left: auto;
-            margin-right: auto;
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-        #standard-value-input {
-            padding: 8px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            width: 250px;
-        }
-
-        /* Estilos para telas menores (Smartphones) */
-        @media (max-width: 768px) {
-            body {
-                margin: 10px;
-            }
-
-            h1 {
-                font-size: 1.5em;
-            }
-
-            p {
-                padding: 0 10px;
-            }
-
-            #color-info, #standard-value-container {
-                width: 90%;
-            }
-
-            #standard-value-container {
-                flex-direction: column;
-                gap: 15px;
-            }
-
-            #standard-value-input {
-                width: 90%;
-            }
-
-            #saved-colors-container {
-                width: 100%;
-                overflow-x: auto; /* Permite rolagem horizontal da tabela */
-                -webkit-overflow-scrolling: touch; /* Melhora a rolagem em iOS */
-            }
-
-            .action-btn {
-                padding: 8px; /* Aumenta a área de toque dos botões */
-            }
-        }
-    </style>
-    <script src="https://cdn.jsdelivr.net/npm/d3-color@3"></script>
+  <meta charset="utf-8" />
+  <title>Colorímetro JS</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding:10px; background:#f8f8f8;}
+    video { width:100%; max-width:600px; border:2px solid #333; border-radius:8px; }
+    canvas { display:none; }
+    .box { margin-top:12px; }
+    button { padding:8px 14px; margin:5px; border:none; border-radius:6px; background:#007bff; color:#fff; cursor:pointer;}
+    button:hover { background:#0056b3; }
+    #info { margin-top:12px; padding:10px; background:#fff; border-radius:6px; border:1px solid #ccc; white-space:pre-line; }
+  </style>
 </head>
 <body>
+  <h2>Colorímetro Digital (JavaScript)</h2>
+  <video id="video" autoplay playsinline></video>
+  <canvas id="canvas"></canvas>
 
-    <h1>Analisador de Cores CIELAB</h1>
-    <p>Clique em qualquer parte da imagem para obter os valores de cor CIELAB ($L^*a^*b^*$) e RGB.</p>
-    
-    <label for="image-upload">Selecione uma imagem:</label>
-    <input type="file" id="image-upload" accept="image/*" style="margin-top: 10px;">
+  <div class="box">
+    <button id="calibrate">Calibrar Branco/Cinza</button>
+    <button id="captureRef">Salvar Referência</button>
+    <button id="measure">Medir ΔE</button>
+  </div>
 
-    <div id="container">
-        <div id="image-container">
-            <img id="image-preview" src="#" alt="Pré-visualização da Imagem" class="hidden">
-            <canvas id="canvas"></canvas>
-            <div id="click-marker" class="hidden"></div>
-        </div>
-        
-        <div id="color-info" class="hidden">
-            <h3>Detalhes da Cor</h3>
-            <div class="info-line">
-                <strong>RGB:</strong> <span id="rgb-value"></span>
-                <span id="rgb-box" class="color-box"></span>
-            </div>
-            <div class="info-line">
-                <strong>CIELAB:</strong> <span id="lab-value"></span>
-            </div>
-            <div class="button-group hidden">
-                <button id="save-color-btn">Salvar Cor</button>
-                <button id="set-standard-btn">Definir como Padrão</button>
-            </div>
-        </div>
-    </div>
+  <div id="info">Aguardando…</div>
 
-    <div id="standard-value-container">
-        <label for="standard-value-input">Valor Padrão CIELAB:</label>
-        <input type="text" id="standard-value-input" placeholder="Ex: L*: 50, a*: 0, b*: 0">
-    </div>
+<script>
+// ===== Conversões de cor =====
+function rgb2xyz(r,g,b){
+  r/=255; g/=255; b/=255;
+  r = r>0.04045? Math.pow((r+0.055)/1.055,2.4): r/12.92;
+  g = g>0.04045? Math.pow((g+0.055)/1.055,2.4): g/12.92;
+  b = b>0.04045? Math.pow((b+0.055)/1.055,2.4): b/12.92;
+  r*=100; g*=100; b*=100;
+  return {
+    x: r*0.4124 + g*0.3576 + b*0.1805,
+    y: r*0.2126 + g*0.7152 + b*0.0722,
+    z: r*0.0193 + g*0.1192 + b*0.9505
+  };
+}
+function xyz2lab(x,y,z){
+  let refX=95.047, refY=100.000, refZ=108.883;
+  x/=refX; y/=refY; z/=refZ;
+  [x,y,z] = [x,y,z].map(v=> v>0.008856? Math.pow(v,1/3): (7.787*v)+(16/116));
+  return { L: (116*y)-16, a: 500*(x-y), b: 200*(y-z) };
+}
+function rgb2lab(r,g,b){
+  let {x,y,z} = rgb2xyz(r,g,b);
+  return xyz2lab(x,y,z);
+}
+// ΔE2000
+function deltaE2000(lab1, lab2){
+  let L1=lab1.L, a1=lab1.a, b1=lab1.b;
+  let L2=lab2.L, a2=lab2.a, b2=lab2.b;
+  let kL=1,kC=1,kH=1;
+  let C1=Math.sqrt(a1*a1+b1*b1);
+  let C2=Math.sqrt(a2*a2+b2*b2);
+  let Cbar=(C1+C2)/2;
+  let G=0.5*(1-Math.sqrt(Math.pow(Cbar,7)/(Math.pow(Cbar,7)+Math.pow(25,7))));
+  let a1p=(1+G)*a1;
+  let a2p=(1+G)*a2;
+  let C1p=Math.sqrt(a1p*a1p+b1*b1);
+  let C2p=Math.sqrt(a2p*a2p+b2*b2);
+  let h1p=Math.atan2(b1,a1p); if(h1p<0)h1p+=2*Math.PI;
+  let h2p=Math.atan2(b2,a2p); if(h2p<0)h2p+=2*Math.PI;
+  let dLp=L2-L1;
+  let dCp=C2p-C1p;
+  let dhp=h2p-h1p;
+  if(Math.abs(dhp)>Math.PI){
+    if(h2p<=h1p) dhp+=2*Math.PI;
+    else dhp-=2*Math.PI;
+  }
+  let dHp=2*Math.sqrt(C1p*C2p)*Math.sin(dhp/2);
+  let Lbar=(L1+L2)/2;
+  let Cbarp=(C1p+C2p)/2;
+  let hbarp=(Math.abs(h1p-h2p)>Math.PI)? (h1p+h2p+2*Math.PI)/2 : (h1p+h2p)/2;
+  let T=1-0.17*Math.cos(hbarp-Math.PI/6)+0.24*Math.cos(2*hbarp)+0.32*Math.cos(3*hbarp+Math.PI/30)-0.20*Math.cos(4*hbarp-21*Math.PI/60);
+  let Sl=1+((0.015*Math.pow(Lbar-50,2))/Math.sqrt(20+Math.pow(Lbar-50,2)));
+  let Sc=1+0.045*Cbarp;
+  let Sh=1+0.015*Cbarp*T;
+  let Rt=-2*Math.sqrt(Math.pow(Cbarp,7)/(Math.pow(Cbarp,7)+Math.pow(25,7)))*Math.sin(Math.PI/3*Math.exp(-Math.pow((hbarp*180/Math.PI-275)/25,2)));
+  return Math.sqrt(Math.pow(dLp/(kL*Sl),2)+Math.pow(dCp/(kC*Sc),2)+Math.pow(dHp/(kH*Sh),2)+Rt*(dCp/(kC*Sc))*(dHp/(kH*Sh)));
+}
 
-    <div id="saved-colors-container" class="hidden">
-        <h2>Cores Salvas</h2>
-        <table id="saved-colors-table">
-            <thead>
-                <tr>
-                    <th>Descrição</th>
-                    <th>RGB</th>
-                    <th>CIELAB</th>
-                    <th>Análise vs. Padrão</th>
-                    <th>Cor</th>
-                    <th>Ações</th>
-                </tr>
-            </thead>
-            <tbody id="saved-colors-tbody">
-            </tbody>
-        </table>
-    </div>
+// ===== Captura câmera =====
+const video=document.getElementById('video');
+const canvas=document.getElementById('canvas');
+const info=document.getElementById('info');
+let refLab=null;
+let calibration={r:1,g:1,b:1};
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
+async function startCamera(){
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
+    video.srcObject=stream;
+  }catch(e){info.innerText='Erro: '+e.message;}
+}
 
-        const imageUpload = document.getElementById('image-upload');
-        const imagePreview = document.getElementById('image-preview');
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d', { willReadFrequently: true });
-        const colorInfo = document.getElementById('color-info');
-        const rgbValueSpan = document.getElementById('rgb-value');
-        const labValueSpan = document.getElementById('lab-value');
-        const rgbBoxSpan = document.getElementById('rgb-box');
-        const imageContainer = document.getElementById('image-container');
-        const saveColorBtn = document.getElementById('save-color-btn');
-        const setStandardBtn = document.getElementById('set-standard-btn');
-        const buttonGroup = document.querySelector('.button-group');
-        const clickMarker = document.getElementById('click-marker');
-        const savedColorsContainer = document.getElementById('saved-colors-container');
-        const savedColorsTbody = document.getElementById('saved-colors-tbody');
-        const standardValueInput = document.getElementById('standard-value-input');
+function samplePixel(){
+  const w=video.videoWidth, h=video.videoHeight;
+  canvas.width=w; canvas.height=h;
+  const ctx=canvas.getContext('2d');
+  ctx.drawImage(video,0,0,w,h);
+  const region=10, cx=Math.floor(w/2-region/2), cy=Math.floor(h/2-region/2);
+  const img=ctx.getImageData(cx,cy,region,region).data;
+  let r=0,g=0,b=0,count=0;
+  for(let i=0;i<img.length;i+=4){r+=img[i];g+=img[i+1];b+=img[i+2];count++;}
+  // aplica calibração
+  r=Math.min(255,r/count*calibration.r);
+  g=Math.min(255,g/count*calibration.g);
+  b=Math.min(255,b/count*calibration.b);
+  return {r:Math.round(r), g:Math.round(g), b:Math.round(b)};
+}
 
-        let savedColors = [];
-        let currentColor = null; // Armazena a última cor selecionada
-        
-        // Função para carregar a imagem selecionada pelo usuário
-        imageUpload.addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    imagePreview.src = event.target.result;
-                    imagePreview.classList.remove('hidden');
-                    buttonGroup.classList.add('hidden');
-                    colorInfo.classList.add('hidden'); // Esconde a info até clicar em uma cor
-                    clickMarker.classList.add('hidden'); // Esconde o marcador ao carregar nova imagem
-                };
-                reader.readAsDataURL(file);
-            }
-        });
+// ===== Botões =====
+document.getElementById('calibrate').addEventListener('click',()=>{
+  const rgb=samplePixel();
+  // Assume alvo = cinza neutro (R=G=B). Pegamos a média
+  const avg=(rgb.r+rgb.g+rgb.b)/3;
+  calibration.r=avg/rgb.r;
+  calibration.g=avg/rgb.g;
+  calibration.b=avg/rgb.b;
+  info.innerText=`Calibração aplicada!\nRGB capturado: (${rgb.r},${rgb.g},${rgb.b})\nCorreção: R*${calibration.r.toFixed(2)}, G*${calibration.g.toFixed(2)}, B*${calibration.b.toFixed(2)}`;
+});
 
-        // Quando a imagem for carregada, desenha ela no canvas
-        imagePreview.addEventListener('load', function() {
-            canvas.width = this.naturalWidth;
-            canvas.height = this.naturalHeight;
-            ctx.drawImage(this, 0, 0);
-            
-            // Redimensiona o container para ficar com a imagem
-            imageContainer.style.width = this.offsetWidth + 'px';
-            imageContainer.style.height = this.offsetHeight + 'px';
-        });
+document.getElementById('captureRef').addEventListener('click',()=>{
+  const rgb=samplePixel();
+  refLab=rgb2lab(rgb.r,rgb.g,rgb.b);
+  info.innerText=`Referência salva: RGB(${rgb.r},${rgb.g},${rgb.b})\nLab(${refLab.L.toFixed(2)}, ${refLab.a.toFixed(2)}, ${refLab.b.toFixed(2)})`;
+});
 
-        // Adiciona um evento de clique na imagem para pegar a cor do pixel
-        imagePreview.addEventListener('click', function(e) {
-            const rect = this.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
+document.getElementById('measure').addEventListener('click',()=>{
+  if(!refLab){info.innerText='Primeiro salve uma referência!'; return;}
+  const rgb=samplePixel();
+  const lab=rgb2lab(rgb.r,rgb.g,rgb.b);
+  const dE=deltaE2000(lab,refLab);
+  info.innerText=`Medida: RGB(${rgb.r},${rgb.g},${rgb.b})\nLab(${lab.L.toFixed(2)}, ${lab.a.toFixed(2)}, ${lab.b.toFixed(2)})\nΔE2000 = ${dE.toFixed(2)}`;
+});
 
-            // Mostra e posiciona o marcador de clique
-            clickMarker.style.left = `${x}px`;
-            clickMarker.style.top = `${y}px`;
-            clickMarker.classList.remove('hidden');
-
-            // Escala as coordenadas do clique para o tamanho original da imagem no canvas
-            const scaleX = canvas.width / this.offsetWidth;
-            const scaleY = canvas.height / this.offsetHeight;
-            const canvasX = Math.floor(x * scaleX);
-            const canvasY = Math.floor(y * scaleY);
-            
-            // Obtém os dados do pixel no ponto clicado
-            const imageData = ctx.getImageData(canvasX, canvasY, 1, 1).data;
-            const r = imageData[0];
-            const g = imageData[1];
-            const b = imageData[2];
-
-            // Converte a cor de RGB para CIELAB usando a biblioteca d3-color
-            const labColor = d3.lab(r, g, b);
-            const l = labColor.l.toFixed(2);
-            const a = labColor.a.toFixed(2);
-            const b_lab = labColor.b.toFixed(2);
-            
-            // Armazena os dados da cor atual para poder salvar
-            currentColor = {
-                rgb: `(${r}, ${g}, ${b})`,
-                lab: { l: parseFloat(l), a: parseFloat(a), b: parseFloat(b_lab) }
-            };
-
-            // Atualiza o HTML com os valores
-            rgbValueSpan.textContent = `(${r}, ${g}, ${b})`;
-            labValueSpan.textContent = `L*: ${l}, a*: ${a}, b*: ${b_lab}`;
-            rgbBoxSpan.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
-            
-            // Mostra o bloco de informações
-            colorInfo.classList.remove('hidden');
-            buttonGroup.classList.remove('hidden');
-        });
-
-        // Função para extrair os valores L, a, b de uma string
-        function parseLabString(labString) {
-            if (!labString) return null;
-            const regex = /L\*:\s*(-?\d+\.?\d*),\s*a\*:\s*(-?\d+\.?\d*),\s*b\*:\s*(-?\d+\.?\d*)/;
-            const match = labString.match(regex);
-            if (match && match.length === 4) {
-                return {
-                    l: parseFloat(match[1]),
-                    a: parseFloat(match[2]),
-                    b: parseFloat(match[3])
-                };
-            }
-            return null;
-        }
-
-        // Evento para definir a cor atual como padrão
-        setStandardBtn.addEventListener('click', () => {
-            if (!currentColor) return;
-
-            const { l, a, b } = currentColor.lab;
-            const standardValueStr = `L*: ${l.toFixed(2)}, a*: ${a.toFixed(2)}, b*: ${b.toFixed(2)}`;
-
-            standardValueInput.value = standardValueStr;
-            localStorage.setItem('cielabStandardValue', standardValueStr);
-            
-            alert('Valor padrão definido a partir da cor selecionada!');
-            renderSavedColors(); // Re-renderiza a tabela para atualizar a análise
-        });
-
-        // Evento para salvar a cor atual
-        saveColorBtn.addEventListener('click', () => {
-            if (!currentColor) return;
-
-            const description = prompt("Digite uma descrição para esta cor:", "Minha Cor");
-            if (description) {
-                const newColor = {
-                    id: Date.now(),
-                    desc: description,
-                    ...currentColor
-                };
-                savedColors.push(newColor);
-                updateStorageAndRender();
-            }
-        });
-
-        // Eventos na tabela para editar e excluir (usando delegação de eventos)
-        savedColorsTbody.addEventListener('click', (e) => {
-            const target = e.target;
-            const row = target.closest('tr');
-            if (!row) return;
-
-            const id = Number(row.dataset.id);
-
-            if (target.classList.contains('delete-btn')) {
-                if (confirm('Tem certeza que deseja excluir esta cor?')) {
-                    savedColors = savedColors.filter(color => color.id !== id);
-                    updateStorageAndRender();
-                }
-            }
-
-            if (target.classList.contains('edit-btn')) {
-                const colorToEdit = savedColors.find(color => color.id === id);
-                if (colorToEdit) {
-                    const newDescription = prompt("Edite a descrição:", colorToEdit.desc);
-                    if (newDescription && newDescription.trim() !== '') {
-                        colorToEdit.desc = newDescription.trim();
-                        updateStorageAndRender();
-                    }
-                }
-            }
-        });
-
-        function updateStorageAndRender() {
-            localStorage.setItem('savedCielabColors', JSON.stringify(savedColors));
-            renderSavedColors();
-        }
-
-        function renderSavedColors() {
-            savedColorsTbody.innerHTML = '';
-            if (savedColors.length === 0) {
-                savedColorsContainer.classList.add('hidden');
-                return;
-            }
-            savedColorsContainer.classList.remove('hidden');
-
-            const standardValueStr = standardValueInput.value.trim();
-            const standardLab = parseLabString(standardValueStr);
-
-            savedColors.forEach(color => {
-                const row = document.createElement('tr');
-                row.dataset.id = color.id;
-
-                let analysisText = '-';
-                if (standardLab && color.lab) {
-                    const savedL = color.lab.l;
-                    const standardL = standardLab.l;
-                    if (savedL > standardL) {
-                        analysisText = 'Mais Clara';
-                    } else if (savedL < standardL) {
-                        analysisText = 'Mais Escura';
-                    } else {
-                        analysisText = 'Mesma Luminosidade';
-                    }
-                }
-
-                const labDisplayString = `L*: ${color.lab.l.toFixed(2)}, a*: ${color.lab.a.toFixed(2)}, b*: ${color.lab.b.toFixed(2)}`;
-
-                row.innerHTML = `
-                    <td>${color.desc}</td>
-                    <td>${color.rgb}</td>
-                    <td>${labDisplayString}</td>
-                    <td>${analysisText}</td>
-                    <td><span class="color-box" style="background-color: rgb${color.rgb};"></span></td>
-                    <td>
-                        <button class="action-btn edit-btn">Alterar</button>
-                        <button class="action-btn delete-btn">Excluir</button>
-                    </td>
-                `;
-                savedColorsTbody.appendChild(row);
-            });
-        }
-
-        // Carrega os dados do localStorage ao iniciar a página
-        function loadInitialData() {
-            const storedColors = localStorage.getItem('savedCielabColors');
-            if (storedColors) {
-                let parsedColors = JSON.parse(storedColors);
-                // Garante compatibilidade com dados antigos que salvavam 'lab' como string
-                savedColors = parsedColors.map(color => {
-                    if (typeof color.lab === 'string') {
-                        const parsedLab = parseLabString(color.lab);
-                        if (parsedLab) {
-                            return { ...color, lab: parsedLab };
-                        }
-                    }
-                    return color;
-                }).filter(color => color.lab && typeof color.lab === 'object');
-
-                renderSavedColors();
-            }
-        }
-
-        // Carrega o valor padrão do localStorage
-        function loadStandardValue() {
-            const storedValue = localStorage.getItem('cielabStandardValue');
-            if (storedValue) {
-                standardValueInput.value = storedValue;
-            }
-        }
-
-        loadInitialData();
-        loadStandardValue();
-        });
-    </script>
+// start
+startCamera();
+</script>
 </body>
 </html>
